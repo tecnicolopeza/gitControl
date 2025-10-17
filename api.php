@@ -16,9 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Configuración de la base de datos MySQL
 $config = [
     'host' => 'localhost',
-    'dbname' => 'git_branches_db',
-    'username' => 'root',          // CAMBIAR por tu usuario MySQL
-    'password' => '',              // CAMBIAR por tu contraseña MySQL
+    'dbname' => 'gitcontroldb',
+    'username' => 'mygitcontrfe',          // CAMBIAR por tu usuario MySQL
+    'password' => 'DIOwekNf',              // CAMBIAR por tu contraseña MySQL
     'charset' => 'utf8mb4',
     'options' => [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,

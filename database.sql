@@ -2,11 +2,11 @@
 -- Ejecutar este script en tu servidor MySQL
 
 -- Crear base de datos
-CREATE DATABASE IF NOT EXISTS git_branches_db 
+CREATE DATABASE IF NOT EXISTS gitcontroldb 
 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Usar la base de datos
-USE git_branches_db;
+USE gitcontroldb;
 
 -- Tabla de aplicaciones
 CREATE TABLE IF NOT EXISTS applications (
