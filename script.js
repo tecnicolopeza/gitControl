@@ -105,7 +105,7 @@ async function loadDataFromMySQL() {
     {
       id: 1,
       nombre: "Sistema Facturación",
-      ramaPrincipal: "MAIN", 
+      ramaPrincipal: "MAIN",
       prefijoJira: "DESA0248-",
       ramasMergeadas: [
         {
@@ -117,7 +117,7 @@ async function loadDataFromMySQL() {
         },
         {
           id: 2,
-          numeroTicket: "124", 
+          numeroTicket: "124",
           ticketCompleto: "DESA0248-124",
           fechaMergeo: "2025-10-16",
           fechaCreacion: "2025-10-16",
@@ -133,7 +133,7 @@ async function loadDataFromMySQL() {
         {
           id: 3,
           numeroTicket: "2001",
-          ticketCompleto: "XPRO-2001", 
+          ticketCompleto: "XPRO-2001",
           fechaMergeo: "2025-10-14",
           fechaCreacion: "2025-10-14",
         },
@@ -238,18 +238,21 @@ function renderAppCard(app) {
   const right = document.createElement("div");
   right.className = "d-flex flex-column align-items-end gap-2";
   right.innerHTML = `
-    <span class="badge badge-branch-count">
-      ${app.ramasMergeadas?.length || 0} rama${(app.ramasMergeadas?.length || 0) !== 1 ? 's' : ''}
-    </span>
-    <div class="btn-group-vertical btn-group-sm">
-      <button class="btn btn-outline-primary btn-sm" data-action="add-branch" data-app="${app.id}">
-        <i class="bi bi-plus-lg me-1"></i>Añadir Rama
-      </button>
-      <button class="btn btn-warning btn-sm" data-action="pro" data-app="${app.id}">
-        <i class="bi bi-upload me-1"></i>Subir a PRO
-      </button>
-    </div>
-  `;
+  <span class="badge badge-branch-count">
+    ${app.ramasMergeadas?.length || 0} rama${(app.ramasMergeadas?.length || 0) !== 1 ? 's' : ''}
+  </span>
+  <div class="btn-group-vertical btn-group-sm">
+    <button class="btn btn-outline-primary btn-sm" data-action="add-branch" data-app="${app.id}">
+      <i class="bi bi-plus-lg me-1"></i>Añadir Rama
+    </button>
+    <button class="btn btn-warning btn-sm" data-action="pro" data-app="${app.id}">
+      <i class="bi bi-upload me-1"></i>Subir a PRO
+    </button>
+    <button class="btn btn-outline-danger btn-sm" data-action="delete-app" data-app="${app.id}">
+      <i class="bi bi-trash3 me-1"></i>Eliminar App
+    </button>
+  </div>
+`;
 
   header.appendChild(left);
   header.appendChild(right);
@@ -562,6 +565,7 @@ function setupEvents() {
     } finally {
       showLoading(false);
     }
+
   });
 
   // Delegación de eventos para botones dinámicos
@@ -593,6 +597,9 @@ function setupEvents() {
           if (confirm("¿Estás seguro de eliminar esta rama?")) {
             await deleteBranch(appId, branchId);
           }
+          break;
+        case "delete-app":
+          openConfirmDeleteApp(appId);
           break;
       }
     } finally {
@@ -680,6 +687,29 @@ function setupEvents() {
       showLoading(false);
     }
   });
+
+  // Confirmar eliminar aplicación
+  $("#btnConfirmDeleteApp").addEventListener("click", async () => {
+    console.log("🔥 BOTÓN ELIMINAR PULSADO"); // ← AÑADIR ESTA LÍNEA
+    showLoading(true);
+
+    try {
+      const appId = Number($("#hiddenDeleteAppId").value);
+      console.log("🔥 App ID a eliminar:", appId); // ← AÑADIR ESTA LÍNEA
+      await deleteApplication(appId);
+
+      const modal = bootstrap.Modal.getInstance($("#modalConfirmDeleteApp"));
+      modal.hide();
+    } finally {
+      showLoading(false);
+    }
+  });
+
+  const btnDeleteApp = $("#btnConfirmDeleteApp");
+  console.log("🔥 Botón eliminar encontrado:", btnDeleteApp); // ← AÑADIR
+  if (!btnDeleteApp) {
+    console.error("❌ No se encontró el botón #btnConfirmDeleteApp");
+  }
 }
 
 // -----------------------------
@@ -740,12 +770,40 @@ function openConfirmPro(appId) {
   if (!app) return;
 
   $("#hiddenProAppId").value = String(appId);
-  $("#confirmProText").textContent = 
+  $("#confirmProText").textContent =
     `¿Estás seguro de subir "${app.nombre}" a PRO? Esto eliminará TODAS las ramas mergeadas de esta aplicación.`;
 
   const modal = new bootstrap.Modal("#modalConfirmPro");
   modal.show();
 }
+
+// Función para abrir el modal de confirmación
+function openConfirmDeleteApp(appId) {
+  const app = apps.find((a) => a.id === appId);
+  if (!app) return;
+
+  $("#hiddenDeleteAppId").value = String(appId);
+  $("#confirmDeleteAppText").textContent =
+    `¿Estás seguro de eliminar la aplicación "${app.nombre}"?`;
+
+  const modal = new bootstrap.Modal("#modalConfirmDeleteApp");
+  modal.show();
+}
+
+// Función para eliminar la aplicación
+async function deleteApplication(appId) {
+  const app = apps.find((a) => a.id === appId);
+  if (!app) return;
+
+  // Guardar en MySQL si está disponible
+  await saveToMySQL('delete_app', { id: appId });
+
+  // Eliminar del array local
+  apps = apps.filter((a) => a.id !== appId);
+  renderApps($("#inputSearch").value);
+  showToast(`Aplicación "${app.nombre}" eliminada correctamente`);
+}
+
 
 // -----------------------------
 // Initialization

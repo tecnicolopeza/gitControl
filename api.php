@@ -16,7 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Configuración de la base de datos MySQL
 $config = [
     'host' => 'localhost',
-    'dbname' => 'gitcontroldb',
+    'dbname' => 'git_branches_db',
     'username' => 'root',          // CAMBIAR por tu usuario MySQL
     'password' => '',              // CAMBIAR por tu contraseña MySQL
     'charset' => 'utf8mb4',
@@ -28,7 +28,8 @@ $config = [
 ];
 
 // Función para conectar a la base de datos
-function getDBConnection($config) {
+function getDBConnection($config)
+{
     static $pdo = null;
 
     if ($pdo === null) {
@@ -44,14 +45,16 @@ function getDBConnection($config) {
 }
 
 // Función para responder con JSON
-function jsonResponse($data, $statusCode = 200) {
+function jsonResponse($data, $statusCode = 200)
+{
     http_response_code($statusCode);
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     exit;
 }
 
 // Función para manejar errores
-function handleError($message, $statusCode = 500) {
+function handleError($message, $statusCode = 500)
+{
     jsonResponse([
         'success' => false,
         'error' => $message,
@@ -121,11 +124,9 @@ try {
             $response = array_values($apps);
 
             jsonResponse($response);
-
         } catch (Exception $e) {
             handleError('Error al obtener aplicaciones: ' . $e->getMessage());
         }
-
     } elseif ($method === 'POST' && isset($input['action'])) {
         // POST: Manejar diferentes acciones
         $action = $input['action'];
@@ -165,7 +166,6 @@ try {
                         'id' => (int)$newId,
                         'message' => 'Aplicación creada exitosamente'
                     ]);
-
                 } catch (Exception $e) {
                     handleError('Error al crear aplicación: ' . $e->getMessage());
                 }
@@ -216,11 +216,39 @@ try {
                         'success' => true,
                         'message' => 'Aplicación actualizada exitosamente'
                     ]);
-
                 } catch (Exception $e) {
                     handleError('Error al actualizar aplicación: ' . $e->getMessage());
                 }
                 break;
+
+            case 'delete_app':
+                try {
+                    if (empty($input['id'])) {
+                        handleError('ID de aplicación requerido', 400);
+                    }
+
+                    // Verificar que la aplicación existe
+                    $checkStmt = $pdo->prepare("SELECT nombre FROM applications WHERE id = ?");
+                    $checkStmt->execute([$input['id']]);
+                    $appData = $checkStmt->fetch();
+
+                    if (!$appData) {
+                        handleError('Aplicación no encontrada', 404);
+                    }
+
+                    // Eliminar aplicación (las ramas se eliminan automáticamente por CASCADE)
+                    $stmt = $pdo->prepare("DELETE FROM applications WHERE id = ?");
+                    $stmt->execute([$input['id']]);
+
+                    jsonResponse([
+                        'success' => true,
+                        'message' => "Aplicación '{$appData['nombre']}' eliminada exitosamente"
+                    ]);
+                } catch (Exception $e) {
+                    handleError('Error al eliminar aplicación: ' . $e->getMessage());
+                }
+                break;
+
 
             case 'create_branch':
                 try {
@@ -268,7 +296,6 @@ try {
                         'id' => (int)$newId,
                         'message' => 'Rama creada exitosamente'
                     ]);
-
                 } catch (Exception $e) {
                     handleError('Error al crear rama: ' . $e->getMessage());
                 }
@@ -324,7 +351,6 @@ try {
                         'success' => true,
                         'message' => 'Rama actualizada exitosamente'
                     ]);
-
                 } catch (Exception $e) {
                     handleError('Error al actualizar rama: ' . $e->getMessage());
                 }
@@ -348,7 +374,6 @@ try {
                         'success' => true,
                         'message' => 'Rama eliminada exitosamente'
                     ]);
-
                 } catch (Exception $e) {
                     handleError('Error al eliminar rama: ' . $e->getMessage());
                 }
@@ -380,7 +405,6 @@ try {
                         'message' => "Aplicación '{$appData['nombre']}' subida a PRO exitosamente",
                         'ramas_eliminadas' => $deletedCount
                     ]);
-
                 } catch (Exception $e) {
                     handleError('Error al subir aplicación a PRO: ' . $e->getMessage());
                 }
@@ -389,12 +413,9 @@ try {
             default:
                 handleError('Acción no válida', 400);
         }
-
     } else {
         handleError('Método HTTP no permitido', 405);
     }
-
 } catch (Exception $e) {
     handleError('Error del servidor: ' . $e->getMessage());
 }
-?>
