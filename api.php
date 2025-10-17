@@ -17,8 +17,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 $config = [
     'host' => 'localhost',
     'dbname' => 'gitcontroldb',
-    'username' => 'mygitcontrfe',          // CAMBIAR por tu usuario MySQL
-    'password' => 'DIOwekNf',              // CAMBIAR por tu contraseña MySQL
+    'username' => 'root',          // CAMBIAR por tu usuario MySQL
+    'password' => '',              // CAMBIAR por tu contraseña MySQL
     'charset' => 'utf8mb4',
     'options' => [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
