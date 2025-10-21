@@ -82,7 +82,9 @@ try {
                     b.id as rama_id,
                     b.numero_ticket as numeroTicket,
                     b.ticket_completo as ticketCompleto,
-                    b.fecha_mergeo as fechaMergeo
+                    b.fecha_mergeo as fechaMergeo,
+                    b.has_warning as hasWarning,
+                    b.warning_comment as warningComment
                 FROM applications a
                 LEFT JOIN branches b ON a.id = b.application_id
                 ORDER BY a.nombre ASC, b.fecha_mergeo DESC, b.created_at DESC
@@ -115,6 +117,8 @@ try {
                         'numeroTicket' => $row['numeroTicket'],
                         'ticketCompleto' => $row['ticketCompleto'],
                         'fechaMergeo' => $row['fechaMergeo'],
+                        'hasWarning' => (bool)$row['hasWarning'],
+                        'warningComment' => $row['warningComment'] ?: '',
                         'fechaCreacion' => $row['fechaMergeo'] // Para compatibilidad
                     ];
                 }
@@ -278,15 +282,17 @@ try {
 
                     // Insertar rama
                     $stmt = $pdo->prepare("
-                        INSERT INTO branches (application_id, numero_ticket, ticket_completo, fecha_mergeo) 
-                        VALUES (?, ?, ?, ?)
+                        INSERT INTO branches (application_id, numero_ticket, ticket_completo, fecha_mergeo, has_warning, warning_comment) 
+                        VALUES (?, ?, ?, ?, ?, ?)
                     ");
 
                     $stmt->execute([
                         $input['applicationId'],
                         trim($input['numeroTicket']),
                         trim($input['ticketCompleto']),
-                        $input['fechaMergeo']
+                        $input['fechaMergeo'],
+                        isset($input['hasWarning']) ? (bool)$input['hasWarning'] : false,
+                        trim($input['warningComment'] ?? '')
                     ]);
 
                     $newId = $pdo->lastInsertId();

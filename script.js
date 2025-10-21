@@ -273,28 +273,38 @@ function renderAppCard(app) {
     app.ramasMergeadas.forEach((r) => {
       const item = document.createElement("div");
       item.className = "branch-item d-flex align-items-center justify-content-between";
+
+      // Añadir clase especial si tiene warning
+      if (r.hasWarning) {
+        item.classList.add("branch-warning");
+      }
+
       item.innerHTML = `
-        <div class="flex-grow-1">
-          <div class="branch-ticket mb-1">${r.ticketCompleto}</div>
-          <div class="small text-muted">
-            <i class="bi bi-calendar-event me-1"></i>${formatDDMMYYYY(r.fechaMergeo)}
-          </div>
-        </div>
-        <div class="branch-actions d-flex gap-1">
-          <button class="btn btn-light btn-sm" title="Editar número de ticket" 
-                  data-action="edit-branch-number" data-app="${app.id}" data-branch="${r.id}">
-            <i class="bi bi-pencil"></i>
-          </button>
-          <button class="btn btn-light btn-sm" title="Editar fecha de mergeo" 
-                  data-action="edit-date" data-app="${app.id}" data-branch="${r.id}">
-            <i class="bi bi-calendar-event"></i>
-          </button>
-          <button class="btn btn-outline-danger btn-sm" title="Eliminar rama" 
-                  data-action="delete-branch" data-app="${app.id}" data-branch="${r.id}">
-            <i class="bi bi-trash3"></i>
-          </button>
-        </div>
-      `;
+    <div class="flex-grow-1">
+      <div class="branch-ticket mb-1">
+        ${r.ticketCompleto}
+        ${r.hasWarning ? '<i class="bi bi-exclamation-triangle text-warning ms-2" title="Tiene advertencias"></i>' : ''}
+      </div>
+      <div class="small text-muted">
+        <i class="bi bi-calendar-event me-1"></i>${formatDDMMYYYY(r.fechaMergeo)}
+        ${r.hasWarning ? '<br><i class="bi bi-chat-text me-1 text-warning"></i>Con advertencia' : ''}
+      </div>
+    </div>
+    <div class="branch-actions d-flex gap-1">
+      <button class="btn btn-light btn-sm" title="Editar número de ticket" 
+              data-action="edit-branch-number" data-app="${app.id}" data-branch="${r.id}">
+        <i class="bi bi-pencil"></i>
+      </button>
+      <button class="btn btn-light btn-sm" title="Editar fecha de mergeo" 
+              data-action="edit-date" data-app="${app.id}" data-branch="${r.id}">
+        <i class="bi bi-calendar-event"></i>
+      </button>
+      <button class="btn btn-outline-danger btn-sm" title="Eliminar rama" 
+              data-action="delete-branch" data-app="${app.id}" data-branch="${r.id}">
+        <i class="bi bi-trash3"></i>
+      </button>
+    </div>
+  `;
       list.appendChild(item);
     });
     body.appendChild(list);
@@ -347,7 +357,7 @@ async function addApplication({ nombre, ramaPrincipal, prefijoJira }) {
   showToast(`Aplicación "${newApp.nombre}" creada exitosamente`);
 }
 
-async function addBranch(appId, numeroTicket, fechaMergeo) {
+async function addBranch(appId, numeroTicket, fechaMergeo, hasWarning = false, warningComment = '') {
   const app = apps.find((a) => a.id === appId);
   if (!app) return;
 
@@ -369,6 +379,8 @@ async function addBranch(appId, numeroTicket, fechaMergeo) {
     numeroTicket: numeroTicket.trim(),
     ticketCompleto,
     fechaMergeo,
+    hasWarning: hasWarning,
+    warningComment: warningComment || '',
     fechaCreacion: todayYYYYMMDD(),
   };
 
@@ -377,7 +389,9 @@ async function addBranch(appId, numeroTicket, fechaMergeo) {
     applicationId: appId,
     numeroTicket: newBranch.numeroTicket,
     ticketCompleto: newBranch.ticketCompleto,
-    fechaMergeo: newBranch.fechaMergeo
+    fechaMergeo: newBranch.fechaMergeo,
+    hasWarning: newBranch.hasWarning,
+    warningComment: newBranch.warningComment
   });
 
   if (result && result.id) {
@@ -386,7 +400,9 @@ async function addBranch(appId, numeroTicket, fechaMergeo) {
 
   app.ramasMergeadas.push(newBranch);
   renderApps($("#inputSearch").value);
-  showToast(`Rama ${ticketCompleto} añadida exitosamente`);
+
+  const warningText = hasWarning ? ' ⚠️ (con advertencia)' : '';
+  showToast(`Rama ${ticketCompleto}${warningText} añadida exitosamente`);
 }
 
 async function updateAppField(appId, field, value) {
@@ -518,7 +534,23 @@ async function resetAppToPro(appId) {
   const app = apps.find((a) => a.id === appId);
   if (!app) return;
 
-  // Guardar en MySQL
+  // Verificar si hay ramas con warnings
+  const warningBranches = app.ramasMergeadas.filter(r => r.hasWarning);
+
+  if (warningBranches.length > 0) {
+    // Mostrar popup con warnings
+    let warningMessages = "⚠️ ADVERTENCIAS DETECTADAS:\n\n";
+    warningBranches.forEach(branch => {
+      warningMessages += `• ${branch.ticketCompleto}:\n  ${branch.warningComment || 'Sin comentario específico'}\n\n`;
+    });
+    warningMessages += "¿Continuar subiendo a PRO de todas formas?";
+
+    if (!confirm(warningMessages)) {
+      return; // Cancelar si el usuario no confirma
+    }
+  }
+
+  // Continuar con la subida a PRO normal
   await saveToMySQL('deploy_to_pro', { applicationId: appId });
 
   app.ramasMergeadas = [];
@@ -639,12 +671,18 @@ function setupEvents() {
       const appId = Number($("#hiddenAddBranchAppId").value);
       const numero = $("#branchTicketNumberInput").value;
       const fecha = $("#branchMergeDateInput").value;
+      const hasWarning = $("#branchWarningCheck").checked;
+      const warningComment = $("#branchWarningComment").value;
 
-      await addBranch(appId, numero, fecha);
+      await addBranch(appId, numero, fecha, hasWarning, warningComment);
 
       const modal = bootstrap.Modal.getInstance($("#modalAddBranch"));
       modal.hide();
       e.target.reset();
+
+      // Resetear warning fields
+      $("#branchWarningCheck").checked = false;
+      $("#warningCommentGroup").style.display = "none";
     } finally {
       showLoading(false);
     }
@@ -710,6 +748,18 @@ function setupEvents() {
   if (!btnDeleteApp) {
     console.error("❌ No se encontró el botón #btnConfirmDeleteApp");
   }
+
+  // Mostrar/ocultar comentario de warning
+  $("#branchWarningCheck").addEventListener("change", (e) => {
+    const commentGroup = $("#warningCommentGroup");
+    if (e.target.checked) {
+      commentGroup.style.display = "block";
+      $("#branchWarningComment").focus();
+    } else {
+      commentGroup.style.display = "none";
+      $("#branchWarningComment").value = "";
+    }
+  });
 }
 
 // -----------------------------

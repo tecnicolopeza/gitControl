@@ -152,6 +152,25 @@
                             <input id="branchMergeDateInput" type="date" class="form-control" required />
                         </div>
 
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="branchWarningCheck">
+                                <label class="form-check-label" for="branchWarningCheck">
+                                    <i class="bi bi-exclamation-triangle text-warning me-1"></i>
+                                    Esta rama tiene advertencias importantes
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3" id="warningCommentGroup" style="display: none;">
+                            <label class="form-label" for="branchWarningComment">
+                                <i class="bi bi-chat-text me-1"></i>Comentario de advertencia
+                            </label>
+                            <textarea id="branchWarningComment" class="form-control" rows="3"
+                                placeholder="Describe la advertencia o problema de esta rama..."></textarea>
+                            <div class="form-text">Este comentario aparecerá al subir a producción</div>
+                        </div>
+
                         <div class="alert alert-info py-2 mb-0">
                             <i class="bi bi-eye me-1"></i>
                             <strong id="branchPreviewText">Se creará:</strong>

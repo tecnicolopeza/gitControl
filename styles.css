@@ -165,6 +165,25 @@ body {
   transform: scale(1.1);
 }
 
+/* Estilos para ramas con warning */
+.branch-warning {
+  background: rgba(255, 193, 7, 0.1);
+  border-left: 4px solid #ffc107;
+}
+
+.branch-warning:hover {
+  background: rgba(255, 193, 7, 0.2);
+}
+
+/* Estilo para el comentario de warning */
+#warningCommentGroup {
+  background: rgba(255, 193, 7, 0.05);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+
 /* Estado vacío */
 #emptyState {
   border: 2px dashed #dee2e6;
